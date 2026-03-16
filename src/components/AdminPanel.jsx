@@ -650,15 +650,48 @@ export default function AdminPanel() {
   };
 
   const deleteRow = async (i, row) => {
-    if (page === "contact") {
-      await axios.delete(`http://localhost:5000/api/ContactUstable/${row._id}`);
-      fetchContacts();
-    }
+    try {
+      if (page === "contact") {
+        await axios.delete(
+          `http://localhost:5000/api/ContactUstable/${row._id}`,
+        );
+        fetchContacts();
+        return;
+      }
 
-    const [fields, data, setData] = getTable();
-    let updated = [...data];
-    updated.splice(i, 1);
-    setData(updated);
+      if (page === "courses") {
+        await axios.delete(`http://localhost:5000/api/Coursetable/${row._id}`);
+        fetchCourses();
+        return;
+      }
+
+      if (page === "faculty") {
+        await axios.delete(`http://localhost:5000/api/Facultytable/${row._id}`);
+        fetchFaculty();
+        return;
+      }
+
+      if (page === "enquiry") {
+        await axios.delete(`http://localhost:5000/api/Enquirytable/${row._id}`);
+        fetchEnquiries();
+        return;
+      }
+
+      if (page === "followup") {
+        await axios.delete(
+          `http://localhost:5000/api/Followuptable/${row._id}`,
+        );
+        fetchFollowups();
+        return;
+      }
+
+      const [fields, data, setData] = getTable();
+      let updated = [...data];
+      updated.splice(i, 1);
+      setData(updated);
+    } catch (error) {
+      console.log("Delete error:", error);
+    }
   };
 
   const filteredData =
