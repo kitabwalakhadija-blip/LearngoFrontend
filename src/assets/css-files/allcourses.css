@@ -1,0 +1,39 @@
+.body-course {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #ffffff;
+      color: #222;
+      text-align: left;
+      align-items: left;
+    }
+
+    .course-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1f1f4d;
+      margin-bottom: 15px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1f1f4d;
+      margin-top: 40px;
+      margin-bottom: 15px;
+    }
+
+    .highlight {
+      font-weight: 600;
+    }
+
+    .doc-list li::marker {
+      color: #f5b301;
+      font-size: 1.2rem;
+    }
+
+    .semester-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1f1f4d;
+      margin-top: 35px;
+      margin-bottom: 10px;
+    }

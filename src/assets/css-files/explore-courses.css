@@ -1,0 +1,125 @@
+/* ===== RESET ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ===== PAGE BACKGROUND ===== */
+body {
+  background-color: #f4f6f8;
+  color: #333;
+  width: 200%;
+}
+
+/* ===== HEADER SECTION ===== */
+.header {
+  text-align: center;
+  padding: 50px 20px;
+  background: linear-gradient(135deg, #004aad, #007bff);
+  color: white;
+}
+
+.header h1 {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.header p {
+  font-size: 16px;
+  opacity: 0.95;
+}
+
+/* ===== COURSES CONTAINER ===== */
+.courses-container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 50px auto;
+}
+
+/* ===== SECTION TITLES ===== */
+.section-title {
+  font-size: 26px;
+  margin-bottom: 25px;
+  color: #004aad;
+  border-left: 5px solid #004aad;
+  padding-left: 12px;
+}
+
+/* ===== COURSE GRID ===== */
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 25px;
+  margin-bottom: 60px;
+}
+
+/* ===== COURSE CARD ===== */
+.course-card {
+  background-color: #ffffff;
+  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.course-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== COURSE TEXT ===== */
+.course-card h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #222;
+}
+
+.course-card p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.course-card strong {
+  color: #000;
+}
+
+/* ===== COURSE BUTTON ===== */
+.linkBtn {
+  margin-top: 15px;
+  text-decoration: none;
+  text-align: center;
+  padding: 10px 14px;
+  background-color: #004aad;
+  color: white;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.linkBtn:hover {
+  background-color: #003080;
+  transform: scale(1.05);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 28px;
+  }
+
+  .section-title {
+    font-size: 22px;
+  }
+
+  .course-card h3 {
+    font-size: 16px;
+  }
+}
