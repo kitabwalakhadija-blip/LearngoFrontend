@@ -363,235 +363,292 @@
 //   );
 // }
 // export default Courses;
+// import { Link } from "react-router-dom";
+// import { useState, useEffect } from "react";
+// import axios from "axios";
+
+// function Courses() {
+//   const [courses, setCourses] = useState([]);
+
+//   // OLD STATIC COURSES
+//   const courseData = [
+//     {
+//       id: 1,
+//       title: "B.Sc (Computer Science, Mathematics, Physics)",
+//       duration: "3 Years",
+//       description:
+//         "Focuses on core computer science with strong analytical skills.",
+//       link: "/coursebsc3",
+//     },
+//     {
+//       id: 2,
+//       title: "B.Sc (Computer Science, Mathematics, Statistics)",
+//       duration: "3 Years",
+//       description: "Ideal for students interested in data and programming.",
+//       link: "/coursebsc1",
+//     },
+//     {
+//       id: 3,
+//       title: "B.Sc (Physics, Chemistry, Mathematics)",
+//       duration: "3 Years",
+//       description: "Strong foundation in physical sciences.",
+//       link: "/coursebsc2",
+//     },
+//     {
+//       id: 4,
+//       title: "B.Sc (Microbiology, Zoology, Chemistry)",
+//       duration: "3 Years",
+//       description: "For careers in biological and medical sciences.",
+//       link: "/coursebsc4",
+//     },
+//     {
+//       id: 5,
+//       title: "B.A (Economics, Political Science, Sociology)",
+//       duration: "3 Years",
+//       description: "Understanding society, governance, and economics.",
+//       link: "/courseba2",
+//     },
+//     {
+//       id: 6,
+//       title: "BCA (Bachelor of Computer Applications)",
+//       duration: "3 Years",
+//       description: "Prepares students for software and IT careers.",
+//       link: "/coursebca",
+//     },
+//     {
+//       id: 7,
+//       title: "BBA (Bachelor of Business Administration)",
+//       duration: "3 Years",
+//       description: "Focus on management and entrepreneurship.",
+//       link: "/coursebba",
+//     },
+//     {
+//       id: 8,
+//       title: "B.Com (Bachelor of Commerce)",
+//       duration: "3 Years",
+//       description: "Accounting, taxation, and finance fundamentals.",
+//       link: "/coursebcom",
+//     },
+//     {
+//       id: 9,
+//       title: "B.Sc (Biotechnology, Botany, Chemistry)",
+//       duration: "3 Years",
+//       description: "Focuses on life sciences and laboratory research.",
+//       link: "/coursebsc",
+//     },
+//     {
+//       id: 10,
+//       title: "B.A (English Literature, History, Psychology)",
+//       duration: "3 Years",
+//       description: "Develops communication, analytical, and writing skills.",
+//       link: "/courseba",
+//     },
+//     {
+//       id: 11,
+//       title: "B.Sc (Information Technology)",
+//       duration: "3 Years",
+//       description: "Focus on networking, databases, and web technologies.",
+//       link: "/coursebsc6",
+//     },
+//     {
+//       id: 12,
+//       title: "B.Voc (Data Analytics)",
+//       duration: "3 Years",
+//       description: "Skill-based program in data analysis and visualization.",
+//       link: "/coursebvoc",
+//     },
+//     {
+//       id: 13,
+//       title: "B.Tech (Bachelor in Biotechnology)",
+//       duration: "3 Years",
+//       description: "Focuses on Computer Software.",
+//       link: "/coursebtech",
+//     },
+//     {
+//       id: 14,
+//       title: "BMS (Bachelor in Management System)",
+//       duration: "3 Years",
+//       description: "Management and business strategy.",
+//       link: "/coursebms",
+//     },
+//     {
+//       id: 15,
+//       title: "B.Arch (Bachelor in Architecture)",
+//       duration: "3 Years",
+//       description: "Architecture and structural design.",
+//       link: "/coursebarch",
+//     },
+//     {
+//       id: 16,
+//       title: "B.Pharm (Bachelor in Pharmacy)",
+//       duration: "3 Years",
+//       description: "Pharmaceutical sciences and drug development.",
+//       link: "/coursebphar",
+//     },
+
+//     {
+//       id: 17,
+//       title: "M.Sc (Computer Science)",
+//       duration: "2 Years",
+//       description: "Advanced computing concepts and system design.",
+//       link: "/coursemsc",
+//     },
+//     {
+//       id: 18,
+//       title: "M.Com",
+//       duration: "2 Years",
+//       description: "Advanced finance, accounting, and economics.",
+//       link: "/coursemcom",
+//     },
+//     {
+//       id: 19,
+//       title: "MA (Mass Communication)",
+//       duration: "2 Years",
+//       description: "Media, journalism, PR, and advertising careers.",
+//       link: "/coursema",
+//     },
+//     {
+//       id: 20,
+//       title: "M.Sc (Information Technology)",
+//       duration: "2 Years",
+//       description: "Advanced IT, cloud computing, and cybersecurity.",
+//       link: "/coursemsc2",
+//     },
+//     {
+//       id: 21,
+//       title: "MBA (Marketing & Finance)",
+//       duration: "2 Years",
+//       description: "Leadership, business strategy, and management skills.",
+//       link: "/coursemba",
+//     },
+//     {
+//       id: 22,
+//       title: "MCA (Master of Computer Applications)",
+//       duration: "2 Years",
+//       description: "Software development, programming, and systems.",
+//       link: "/coursemca",
+//     },
+//     {
+//       id: 23,
+//       title: "M.Tech (Biotechnology)",
+//       duration: "2 Years",
+//       description: "Advanced biotechnology research and innovation.",
+//       link: "/coursemtech",
+//     },
+//     {
+//       id: 24,
+//       title: "ME (Civil Engineering)",
+//       duration: "2 Years",
+//       description: "Postgraduate degree in engineering specialization.",
+//       link: "/courseme",
+//     },
+//     {
+//       id: 25,
+//       title: "MA (Arts)",
+//       duration: "2 Years",
+//       description: "Postgraduate degree in humanities and social sciences.",
+//       link: "/coursemart",
+//     },
+//     {
+//       id: 26,
+//       title: "LLM (Master in Law)",
+//       duration: "2 Years",
+//       description: "Advanced legal studies and specialization in law.",
+//       link: "/coursemllm",
+//     },
+//     {
+//       id: 27,
+//       title: "MBE (Business Economics)",
+//       duration: "2 Years",
+//       description: "Postgraduate degree in business economics.",
+//       link: "/coursembe",
+//     },
+//     {
+//       id: 28,
+//       title: "MDS (Dental Surgery)",
+//       duration: "3 Years",
+//       description: "Advanced postgraduate degree in dental surgery.",
+//       link: "/coursemds",
+//     },
+//     {
+//       id: 29,
+//       title: "M.Des (Master in Design)",
+//       duration: "3 Years",
+//       description: "Postgraduate degree in design and creative innovation.",
+//       link: "/coursemdes",
+//     },
+//     {
+//       id: 30,
+//       title: "MFTech (Fashion Technology)",
+//       duration: "3 Years",
+//       description: "Postgraduate degree in fashion technology.",
+//       link: "/coursemftech",
+//     },
+//     {
+//       id: 31,
+//       title: "M.Ed (Master in Education)",
+//       duration: "3 Years",
+//       description: "Postgraduate degree in education.",
+//       link: "/coursemed",
+//     },
+//   ];
+
+//   // FETCH COURSES FROM DATABASE
+//   const fetchCourses = async () => {
+//     try {
+//       const res = await axios.get("http://localhost:5000/api/Coursetable");
+//       setCourses(res.data);
+//     } catch (error) {
+//       console.log("Error fetching courses:", error);
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchCourses();
+//   }, []);
+
+//   // MERGE STATIC + DATABASE COURSES
+//   const allCourses = [...courseData, ...courses];
+
+//   return (
+//     <>
+//       <header className="header">
+//         <h1>Explore Our Courses</h1>
+//         <p>
+//           Discover undergraduate and postgraduate programs offered at LearnGo
+//         </p>
+//       </header>
+
+//       <section className="courses-container">
+//         <div className="course-grid">
+//           {allCourses.map((course, index) => (
+//             <div className="course-card" key={course._id || course.id || index}>
+//               <h3>{course.title}</h3>
+
+//               <p>
+//                 <strong>Duration:</strong> {course.duration}
+//               </p>
+
+//               <p>{course.description}</p>
+
+//               <Link to={course.link || `/course/${course._id}`}>
+//                 <button className="linkBtn">Course Detail</button>
+//               </Link>
+//             </div>
+//           ))}
+//         </div>
+//       </section>
+//     </>
+//   );
+// }
+
+// export default Courses;
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
 function Courses() {
   const [courses, setCourses] = useState([]);
-
-  // OLD STATIC COURSES
-  const courseData = [
-    {
-      id: 1,
-      title: "B.Sc (Computer Science, Mathematics, Physics)",
-      duration: "3 Years",
-      description:
-        "Focuses on core computer science with strong analytical skills.",
-      link: "/coursebsc3",
-    },
-    {
-      id: 2,
-      title: "B.Sc (Computer Science, Mathematics, Statistics)",
-      duration: "3 Years",
-      description: "Ideal for students interested in data and programming.",
-      link: "/coursebsc1",
-    },
-    {
-      id: 3,
-      title: "B.Sc (Physics, Chemistry, Mathematics)",
-      duration: "3 Years",
-      description: "Strong foundation in physical sciences.",
-      link: "/coursebsc2",
-    },
-    {
-      id: 4,
-      title: "B.Sc (Microbiology, Zoology, Chemistry)",
-      duration: "3 Years",
-      description: "For careers in biological and medical sciences.",
-      link: "/coursebsc4",
-    },
-    {
-      id: 5,
-      title: "B.A (Economics, Political Science, Sociology)",
-      duration: "3 Years",
-      description: "Understanding society, governance, and economics.",
-      link: "/courseba2",
-    },
-    {
-      id: 6,
-      title: "BCA (Bachelor of Computer Applications)",
-      duration: "3 Years",
-      description: "Prepares students for software and IT careers.",
-      link: "/coursebca",
-    },
-    {
-      id: 7,
-      title: "BBA (Bachelor of Business Administration)",
-      duration: "3 Years",
-      description: "Focus on management and entrepreneurship.",
-      link: "/coursebba",
-    },
-    {
-      id: 8,
-      title: "B.Com (Bachelor of Commerce)",
-      duration: "3 Years",
-      description: "Accounting, taxation, and finance fundamentals.",
-      link: "/coursebcom",
-    },
-    {
-      id: 9,
-      title: "B.Sc (Biotechnology, Botany, Chemistry)",
-      duration: "3 Years",
-      description: "Focuses on life sciences and laboratory research.",
-      link: "/coursebsc",
-    },
-    {
-      id: 10,
-      title: "B.A (English Literature, History, Psychology)",
-      duration: "3 Years",
-      description: "Develops communication, analytical, and writing skills.",
-      link: "/courseba",
-    },
-    {
-      id: 11,
-      title: "B.Sc (Information Technology)",
-      duration: "3 Years",
-      description: "Focus on networking, databases, and web technologies.",
-      link: "/coursebsc6",
-    },
-    {
-      id: 12,
-      title: "B.Voc (Data Analytics)",
-      duration: "3 Years",
-      description: "Skill-based program in data analysis and visualization.",
-      link: "/coursebvoc",
-    },
-    {
-      id: 13,
-      title: "B.Tech (Bachelor in Biotechnology)",
-      duration: "3 Years",
-      description: "Focuses on Computer Software.",
-      link: "/coursebtech",
-    },
-    {
-      id: 14,
-      title: "BMS (Bachelor in Management System)",
-      duration: "3 Years",
-      description: "Management and business strategy.",
-      link: "/coursebms",
-    },
-    {
-      id: 15,
-      title: "B.Arch (Bachelor in Architecture)",
-      duration: "3 Years",
-      description: "Architecture and structural design.",
-      link: "/coursebarch",
-    },
-    {
-      id: 16,
-      title: "B.Pharm (Bachelor in Pharmacy)",
-      duration: "3 Years",
-      description: "Pharmaceutical sciences and drug development.",
-      link: "/coursebphar",
-    },
-
-    {
-      id: 17,
-      title: "M.Sc (Computer Science)",
-      duration: "2 Years",
-      description: "Advanced computing concepts and system design.",
-      link: "/coursemsc",
-    },
-    {
-      id: 18,
-      title: "M.Com",
-      duration: "2 Years",
-      description: "Advanced finance, accounting, and economics.",
-      link: "/coursemcom",
-    },
-    {
-      id: 19,
-      title: "MA (Mass Communication)",
-      duration: "2 Years",
-      description: "Media, journalism, PR, and advertising careers.",
-      link: "/coursema",
-    },
-    {
-      id: 20,
-      title: "M.Sc (Information Technology)",
-      duration: "2 Years",
-      description: "Advanced IT, cloud computing, and cybersecurity.",
-      link: "/coursemsc2",
-    },
-    {
-      id: 21,
-      title: "MBA (Marketing & Finance)",
-      duration: "2 Years",
-      description: "Leadership, business strategy, and management skills.",
-      link: "/coursemba",
-    },
-    {
-      id: 22,
-      title: "MCA (Master of Computer Applications)",
-      duration: "2 Years",
-      description: "Software development, programming, and systems.",
-      link: "/coursemca",
-    },
-    {
-      id: 23,
-      title: "M.Tech (Biotechnology)",
-      duration: "2 Years",
-      description: "Advanced biotechnology research and innovation.",
-      link: "/coursemtech",
-    },
-    {
-      id: 24,
-      title: "ME (Civil Engineering)",
-      duration: "2 Years",
-      description: "Postgraduate degree in engineering specialization.",
-      link: "/courseme",
-    },
-    {
-      id: 25,
-      title: "MA (Arts)",
-      duration: "2 Years",
-      description: "Postgraduate degree in humanities and social sciences.",
-      link: "/coursemart",
-    },
-    {
-      id: 26,
-      title: "LLM (Master in Law)",
-      duration: "2 Years",
-      description: "Advanced legal studies and specialization in law.",
-      link: "/coursemllm",
-    },
-    {
-      id: 27,
-      title: "MBE (Business Economics)",
-      duration: "2 Years",
-      description: "Postgraduate degree in business economics.",
-      link: "/coursembe",
-    },
-    {
-      id: 28,
-      title: "MDS (Dental Surgery)",
-      duration: "3 Years",
-      description: "Advanced postgraduate degree in dental surgery.",
-      link: "/coursemds",
-    },
-    {
-      id: 29,
-      title: "M.Des (Master in Design)",
-      duration: "3 Years",
-      description: "Postgraduate degree in design and creative innovation.",
-      link: "/coursemdes",
-    },
-    {
-      id: 30,
-      title: "MFTech (Fashion Technology)",
-      duration: "3 Years",
-      description: "Postgraduate degree in fashion technology.",
-      link: "/coursemftech",
-    },
-    {
-      id: 31,
-      title: "M.Ed (Master in Education)",
-      duration: "3 Years",
-      description: "Postgraduate degree in education.",
-      link: "/coursemed",
-    },
-  ];
 
   // FETCH COURSES FROM DATABASE
   const fetchCourses = async () => {
@@ -607,9 +664,6 @@ function Courses() {
     fetchCourses();
   }, []);
 
-  // MERGE STATIC + DATABASE COURSES
-  const allCourses = [...courseData, ...courses];
-
   return (
     <>
       <header className="header">
@@ -621,8 +675,8 @@ function Courses() {
 
       <section className="courses-container">
         <div className="course-grid">
-          {allCourses.map((course, index) => (
-            <div className="course-card" key={course._id || course.id || index}>
+          {courses.map((course) => (
+            <div className="course-card" key={course._id}>
               <h3>{course.title}</h3>
 
               <p>
@@ -631,7 +685,7 @@ function Courses() {
 
               <p>{course.description}</p>
 
-              <Link to={course.link || `/course/${course._id}`}>
+              <Link to={course.link}>
                 <button className="linkBtn">Course Detail</button>
               </Link>
             </div>

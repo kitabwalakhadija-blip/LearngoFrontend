@@ -538,7 +538,7 @@ export default function AdminPanel() {
     "name",
     "description",
     "duration",
-    " link",
+    "link",
     "CourseDetail",
   ];
 
