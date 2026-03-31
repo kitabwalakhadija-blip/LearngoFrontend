@@ -21,7 +21,8 @@ import ArrUpdate from "./components/use-state/ArrUpdate";
 import ToDoList from "./components/use-state/ToDoList";
 import DataFetch from "./components/use-effect/DataFetch";
 import AdminPanel from "./components/AdminPanel";
-import FacultyPanel from "./components/FacultyPanel";
+import FacultyPanel from "./assets/FacultyPanel";
+import FacultyLogin from "./components/FacultyLogin";
 //import Sidebar from './components/Sidebar';
 import Footer from "./components/Footer";
 import Contact from "./Pages/Contact";
@@ -117,6 +118,7 @@ function App() {
         <Route path="/coursemed" element={<CourseMed />} />
         <Route path="/adminpanel" element={<AdminPanel />} />
         <Route path="/facultypanel" element={<FacultyPanel />} />
+        <Route path="/facultylogin" element={<FacultyLogin />} />
         <Route path="/task" element={<Task />} />
         <Route path="/userform" element={<UserForm />} />
         <Route path="/user" element={<User />} />

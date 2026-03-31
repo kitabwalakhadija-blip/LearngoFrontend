@@ -450,6 +450,7 @@
 //       description: "Focus on networking, databases, and web technologies.",
 //       link: "/coursebsc6",
 //     },
+
 //     {
 //       id: 12,
 //       title: "B.Voc (Data Analytics)",
@@ -646,9 +647,148 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
 
 function Courses() {
   const [courses, setCourses] = useState([]);
+  const location = useLocation();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [courseSearch, setCourseSearch] = useState("");
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+
+    // this is coming from top navbar search
+    // user types PCM / PCB / Commerce / Arts there
+    setSearchTerm(query.get("search") || "");
+  }, [location.search]);
+
+  const normalize = (str) => {
+    return (str || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+      .trim();
+  };
+
+  const streamCourses = [
+    {
+      title: "B.Sc (Computer Science, Mathematics, Statistics)",
+      stream: ["PCM", "Science"],
+    },
+    {
+      title: "B.Sc (Computer Science, Mathematics, Physics)",
+      stream: ["PCM", "Science"],
+    },
+    {
+      title: "B.Sc (Microbiology, Zoology, Chemistry)",
+      stream: ["PCB", "Science"],
+    },
+    {
+      title: "B.A (English Literature, History, Psychology)",
+      stream: ["Arts"],
+    },
+    {
+      title: "B.Voc (Data Analytics)",
+      stream: ["PCM", "Commerce", "Science"],
+    },
+    {
+      title: "B.Sc (Information Technology)",
+      stream: ["PCM", "Commerce", "Science"],
+    },
+    {
+      title: "B.Tech (Bachelor in Biotechnology)",
+      stream: ["PCB", "Science"],
+    },
+    {
+      title: "BMS (Bachelor in Management System)",
+      stream: ["Commerce", "Arts"],
+    },
+    {
+      title: "B.Arch (Bachelor in Architecture)",
+      stream: ["PCM", "Science"],
+    },
+    {
+      title: "B.Pharm (Bachelor in Pharmacy)",
+      stream: ["PCB", "Science"],
+    },
+    {
+      title: "M.Sc (Computer Science)",
+      stream: ["PCM", "Science", "Commerce"],
+    },
+    {
+      title: "M.Com",
+      stream: ["Commerce"],
+    },
+    {
+      title: "MA (Mass Communication)",
+      stream: ["Arts", "Commerce"],
+    },
+    {
+      title: "M.Sc (Information Technology)",
+      stream: ["PCM", "Commerce", "Science"],
+    },
+    {
+      title: "MBA (Marketing & Finance)",
+      stream: ["Commerce", "Arts", "Science"],
+    },
+    {
+      title: "MCA (Master of Computer Applications)",
+      stream: ["PCM", "Commerce", "Science"],
+    },
+    {
+      title: "M.Tech (Biotechnology)",
+      stream: ["PCB", "Science"],
+    },
+    {
+      title: "ME (Civil Engineering)",
+      stream: ["PCM", "Science"],
+    },
+    {
+      title: "MA (Arts)",
+      stream: ["Arts"],
+    },
+    {
+      title: "LLM (Master in Law)",
+      stream: ["Arts", "Commerce"],
+    },
+    {
+      title: "MBE (Business Economics)",
+      stream: ["Commerce"],
+    },
+    {
+      title: "MDS (Dental Surgery)",
+      stream: ["PCB", "Science"],
+    },
+    {
+      title: "M.Des (Master in Design)",
+      stream: ["Arts", "Science"],
+    },
+    {
+      title: "MFTech (Fashion Technology)",
+      stream: ["Arts", "Science"],
+    },
+    {
+      title: "M.Ed (Master in Education)",
+      stream: ["Arts", "Commerce", "Science"],
+    },
+    {
+      title: "BCA (Bachelor of Computer Applications)",
+      stream: ["PCM", "Commerce", "Science"],
+    },
+    {
+      title: "BBA (Bachelor of Business Administration)",
+      stream: ["Commerce", "Arts"],
+    },
+    {
+      title: "B.Com (Bachelor of Commerce)",
+      stream: ["Commerce"],
+    },
+    {
+      title: "B.Sc (Biotechnology, Botany, Chemistry)",
+      stream: ["PCB", "Science"],
+    },
+  ];
 
   // FETCH COURSES FROM DATABASE
   const fetchCourses = async () => {
@@ -664,6 +804,78 @@ function Courses() {
     fetchCourses();
   }, []);
 
+  if (!courses) return <h2>Loading....</h2>;
+
+  const matchedTitles =
+    searchTerm.trim() === ""
+      ? courses.map((course) => course.title)
+      : streamCourses
+          .filter((course) =>
+            course.stream.some((s) =>
+              s.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
+          )
+          .map((course) => course.title);
+
+  const getPriority = (course) => {
+    const title = course.title.toLowerCase();
+    const currentSearch = searchTerm.toLowerCase();
+
+    if (currentSearch === "commerce") {
+      if (title.includes("b.com")) return 1;
+      if (title.includes("bba")) return 2;
+      if (title.includes("bms")) return 3;
+      if (title.includes("bca")) return 4;
+      if (title.includes("m.com")) return 10;
+      if (title.includes("mba")) return 11;
+      if (title.startsWith("m.")) return 20;
+      return 30;
+    }
+
+    if (currentSearch === "pcm" || currentSearch === "science") {
+      if (title.includes("b.tech")) return 1;
+      if (title.includes("b.sc")) return 2;
+      if (title.includes("bca")) return 3;
+      if (title.includes("b.arch")) return 4;
+      if (title.includes("b.pharm")) return 5;
+      if (title.startsWith("m.")) return 20;
+      return 30;
+    }
+
+    if (currentSearch === "pcb") {
+      if (title.includes("b.pharm")) return 1;
+      if (title.includes("biotechnology")) return 2;
+      if (title.includes("microbiology")) return 3;
+      if (title.includes("b.sc")) return 4;
+      if (title.startsWith("m.")) return 20;
+      return 30;
+    }
+
+    if (currentSearch === "arts") {
+      if (title.includes("b.a")) return 1;
+      if (title.includes("bba")) return 2;
+      if (title.includes("bms")) return 3;
+      if (title.includes("law")) return 4;
+      if (title.startsWith("m.")) return 20;
+      return 30;
+    }
+
+    return 50;
+  };
+
+  const finalCourses = courses
+    .filter((course) => {
+      const matchesStream =
+        searchTerm.trim() === "" || matchedTitles.includes(course.title);
+
+      const matchesCourseSearch =
+        courseSearch.trim() === "" ||
+        normalize(course.title).includes(normalize(courseSearch));
+
+      return matchesStream && matchesCourseSearch;
+    })
+    .sort((a, b) => getPriority(a) - getPriority(b));
+
   return (
     <>
       <header className="header">
@@ -674,8 +886,18 @@ function Courses() {
       </header>
 
       <section className="courses-container">
+        <div style={{ marginBottom: "20px" }}>
+          <input
+            type="text"
+            placeholder="Search course name like B.Sc, BBA, MBA..."
+            className="form-control"
+            value={courseSearch}
+            onChange={(e) => setCourseSearch(e.target.value)}
+          />
+        </div>
+
         <div className="course-grid">
-          {courses.map((course) => (
+          {finalCourses.map((course) => (
             <div className="course-card" key={course._id}>
               <h3>{course.title}</h3>
 

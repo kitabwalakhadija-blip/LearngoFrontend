@@ -474,10 +474,13 @@ export default function AdminPanel() {
   const [loginError, setLoginError] = useState(false);
 
   const ENQUIRY_FIELDS = [
-    "Eid",
+    "_id",
     "student_name",
     "phone",
-    "CID",
+    {key:"CID",
+    label:"CID",
+    render:(row)=>row.CID?.title||"",
+    },
     "Department",
     "ConsellerName",
     "Percentage",
@@ -520,14 +523,14 @@ export default function AdminPanel() {
   const CONTACT_FIELDS = ["name", "email", "phoneNo", "message"];
 
   const FACULTY_FIELDS = [
-    "Name",
-    "Email",
-    "Student assign",
-    "Department",
+    "FacName",
+    "FacEmail",
+    "StudentAssign",
+    "FacDepartment",
     "Experience",
-    "Qualification",
+    "FacQualification",
     "Address",
-    "Contact no",
+    "FacPhoneNo",
     "UserID",
     "Password",
   ];
@@ -535,11 +538,9 @@ export default function AdminPanel() {
   const COURSE_FIELDS = [
     "_id",
     "title",
-    "name",
     "description",
     "duration",
     "link",
-    "CourseDetail",
   ];
 
   const [page, setPage] = useState("dashboard");
@@ -570,7 +571,7 @@ export default function AdminPanel() {
   };
 
   const fetchEnquiries = async () => {
-    const res = await axios.get("http://localhost:5000/api/enquirytable");
+    const res = await axios.get("http://localhost:5000/api/Enquirytable");
     setEnquiries(res.data);
   };
 
@@ -585,7 +586,7 @@ export default function AdminPanel() {
   };
 
   const fetchFaculty = async () => {
-    const res = await axios.get("http://localhost:5000/api/facultytable");
+    const res = await axios.get("http://localhost:5000/api/Facultytable");
     setFaculty(res.data);
   };
 
@@ -627,7 +628,7 @@ export default function AdminPanel() {
 
       if (page === "faculty") {
         const res = await axios.post(
-          "http://localhost:5000/api/faculty",
+          "http://localhost:5000/api/Facultytable",
           formData,
         );
         setFaculty([...faculty, res.data]);
@@ -879,17 +880,29 @@ export default function AdminPanel() {
 
             {formData && (
               <div className="card p-3 mb-3">
-                {fields.map((f, i) => (
-                  <input
-                    key={i}
-                    className="form-control mb-2"
-                    placeholder={f}
-                    value={formData[f] || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, [f]: e.target.value })
-                    }
-                  />
-                ))}
+                {fields.map((f, i) => {
+                  const fieldName = typeof f === "object" ? f.key : f;
+
+                  return (
+                    <input
+                      key={i}
+                      type={fieldName === "FollowupDate" ? "date" : "text"}
+                      className="form-control mb-2"
+                      placeholder={typeof f === "object" ? f.label : f}
+                      value={
+                        fieldName === "FollowupDate" && formData[fieldName]
+                          ? formData[fieldName].split("T")[0]
+                          : formData[fieldName] || ""
+                      }
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          [fieldName]: e.target.value,
+                        })
+                      }
+                    />
+                  );
+                })}
 
                 <button className="btn btn-primary me-2" onClick={saveData}>
                   Save
@@ -912,7 +925,7 @@ export default function AdminPanel() {
                 <thead>
                   <tr>
                     {fields.map((f, i) => (
-                      <th key={i}>{f}</th>
+                      <th key={i}>{typeof f === "object" ? f.label : f}</th>
                     ))}
                     <th>Action</th>
                   </tr>
@@ -928,9 +941,15 @@ export default function AdminPanel() {
                   ) : (
                     filteredData.map((row, i) => (
                       <tr key={i}>
-                        {fields.map((f, j) => (
-                          <td key={j}>{f === "Eid" ? row._id : row[f]}</td>
-                        ))}
+                        {fields.map((f, j) => {
+                          if (typeof f === "object") {
+                            return <td key={j}>{f.render(row)}</td>;
+                          }
+
+                          return (
+                            <td key={j}>{f === "Eid" ? row._id : row[f]}</td>
+                          );
+                        })}
                         <td>
                           <button
                             className="btn btn-warning btn-sm me-2"

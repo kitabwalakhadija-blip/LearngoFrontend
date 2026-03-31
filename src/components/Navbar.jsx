@@ -1,8 +1,10 @@
-import React, { useState } from "react";
-
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   return (
     <nav className="main-navbar">
@@ -15,20 +17,36 @@ const Navbar = () => {
         <div className={`nav-links ${menuOpen ? "open" : ""}`}>
           <a href="/">Home</a>
           <a href="/courses">Courses</a>
-          <a href="/AboutUs">AboutUs</a>
+          <a href="/about">AboutUs</a>
           <a href="/contact">ContactUs</a>
-          <a href="/contact">Faculty Login</a>
+          <a href="/FacultyLogin">Faculty Login</a>
         </div>
       </div>
 
       {/* RIGHT */}
       <div className="nav-right">
-        <a id="main-login" href="/login">
-          
-        </a>
+        <a id="main-login" href="/login"></a>
 
-        <input type="text" className="search-box" placeholder="Search..." />
-        <button className="search-btn">Search</button>
+        <input
+          className="search-placholder"
+          type="text"
+          placeholder="Search courses..."
+          value={search}
+          onChange={(e) => {
+            const value = e.target.value;
+            setSearch(value);
+
+            // 🔴 If input is cleared → go to HOME
+            if (value.trim() === "") {
+              navigate("/");
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && search.trim() !== "") {
+              navigate(`/courses?search=${search}`);
+            }
+          }}
+        />
 
         {/* HAMBURGER */}
         <div
