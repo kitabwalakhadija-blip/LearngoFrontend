@@ -459,7 +459,7 @@
 //     </div>
 //   );
 // }
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -473,13 +473,32 @@ export default function AdminPanel() {
   const [adminPass, setAdminPass] = useState("");
   const [loginError, setLoginError] = useState(false);
 
-  const ENQUIRY_FIELDS = [
-    "_id",
-    "student_name",
-    "phone",
+  const formatDateTime = (value) => {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return date.toLocaleString("en-IN");
+  };
+
+  const ENQUIRY_FIELDS = [ 
+    "Eid",
+    {
+      key: "EnquiryDate",
+      label: "EnquiryDate",
+      render: (row) => formatDateTime(row.EnquiryDate),
+    },
+    "student_name",   
+    "phone",   
     {key:"CID",
     label:"CID",
-    render:(row)=>row.CID?.title||"",
+    render:(row)=>row.CID ?? "",
     },
     "Department",
     "ConsellerName",
@@ -536,7 +555,7 @@ export default function AdminPanel() {
   ];
 
   const COURSE_FIELDS = [
-    "_id",
+    "Id",
     "title",
     "description",
     "duration",
@@ -545,7 +564,11 @@ export default function AdminPanel() {
 
   const [page, setPage] = useState("dashboard");
   const [formData, setFormData] = useState(null);
-  const [editIndex, setEditIndex] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [formMode, setFormMode] = useState("add");
+  const [formPage, setFormPage] = useState(null);
+  const activeEditRef = useRef(null);
 
   const [enquiries, setEnquiries] = useState([]);
   const [followups, setFollowups] = useState([]);
@@ -571,13 +594,23 @@ export default function AdminPanel() {
   };
 
   const fetchEnquiries = async () => {
-    const res = await axios.get("http://localhost:5000/api/Enquirytable");
-    setEnquiries(res.data);
+    try {
+      const res = await axios.get("http://localhost:5000/api/Enquirytable");
+      setEnquiries(res.data);
+    } catch (error) {
+      console.error("Fetch enquiries error:", error);
+      setEnquiries([]);
+    }
   };
 
   const fetchFollowups = async () => {
-    const res = await axios.get("http://localhost:5000/api/Followuptable");
-    setFollowups(res.data);
+    try {
+      const res = await axios.get("http://localhost:5000/api/Followuptable");
+      setFollowups(res.data);
+    } catch (error) {
+      console.error("Fetch followups error:", error);
+      setFollowups([]);
+    }
   };
 
   const fetchContacts = async () => {
@@ -603,6 +636,16 @@ export default function AdminPanel() {
     fetchCourses();
   }, []);
 
+  useEffect(() => {
+    setFormData(null);
+    setEditId(null);
+    setEditingRecord(null);
+    setFormMode("add");
+    setFormPage(page);
+    setSearchText("");
+    activeEditRef.current = null;
+  }, [page]);
+
   const getTable = () => {
     if (page === "enquiry") return [ENQUIRY_FIELDS, enquiries, setEnquiries];
     if (page === "followup") return [FOLLOWUP_FIELDS, followups, setFollowups];
@@ -612,41 +655,200 @@ export default function AdminPanel() {
     return [];
   };
 
+  const isEditableField = (field) => {
+    const fieldName = typeof field === "object" ? field.key : field;
+    return fieldName !== "_id" && fieldName !== "Eid" && fieldName !== "Id";
+  };
+
+  const isCourseSelectField = (fieldName) =>
+    page === "enquiry" &&
+    (fieldName === "WantToTakeAdmission" || fieldName === "SuggestedCourse");
+
+  const replaceRowById = (rows, rowId, nextRow) =>
+    rows.map((row) => (String(row._id) === String(rowId) ? nextRow : row));
+
+  const getUpdatePayload = (data) => {
+    if (!data) {
+      return data;
+    }
+
+    const payload = { ...data };
+    delete payload._id;
+    delete payload.__v;
+    delete payload.__rowId;
+
+    return payload;
+  };
+
+  const sanitizeEnquiryPayload = (data) => {
+    const payload = getUpdatePayload(data);
+
+    if (!payload) {
+      return payload;
+    }
+
+    if (!payload.CID) {
+      delete payload.CID;
+    }
+
+    if (
+      payload.CID &&
+      !/^[a-f\d]{24}$/i.test(String(payload.CID))
+    ) {
+      delete payload.CID;
+    }
+
+    return payload;
+  };
+
   const saveData = async () => {
     try {
-      const [fields, data, setData] = getTable();
-
       if (!formData) return;
+      const isEditing = formMode === "edit" && formPage === page;
+      const activeEdit = activeEditRef.current;
+      const currentEditId =
+        activeEdit?.id ??
+        editId ??
+        editingRecord?._id ??
+        editingRecord?.Eid ??
+        formData?.__rowId ??
+        formData?._id ??
+        formData?.Eid ??
+        null;
 
+      // CONTACT
       if (page === "contact") {
-        const res = await axios.post(
-          "http://localhost:5000/api/ContactUstable",
-          formData,
-        );
-        setContacts([...contacts, res.data]);
+        if (isEditing && currentEditId !== null) {
+          await axios.put(
+            `http://localhost:5000/api/ContactUstable/${currentEditId}`,
+            getUpdatePayload(formData),
+          );
+        } else {
+          const res = await axios.post(
+            "http://localhost:5000/api/ContactUstable",
+            getUpdatePayload(formData),
+          );
+
+          setContacts([...contacts, res.data]);
+        }
+
+        await fetchContacts();
       }
 
+      // FACULTY
       if (page === "faculty") {
-        const res = await axios.post(
-          "http://localhost:5000/api/Facultytable",
-          formData,
-        );
-        setFaculty([...faculty, res.data]);
+        if (isEditing && currentEditId !== null) {
+          await axios.put(
+            `http://localhost:5000/api/Facultytable/${currentEditId}`,
+            getUpdatePayload(formData),
+          );
+        } else {
+          const res = await axios.post(
+            "http://localhost:5000/api/Facultytable",
+            getUpdatePayload(formData),
+          );
+
+          setFaculty([...faculty, res.data]);
+        }
+
+        await fetchFaculty();
       }
 
+      // COURSE
       if (page === "courses") {
-        const res = await axios.post(
-          "http://localhost:5000/api/Coursetable",
-          formData,
-        );
-        setCourses([...courses, res.data]);
+        if (isEditing && currentEditId !== null) {
+          await axios.put(
+            `http://localhost:5000/api/Coursetable/${currentEditId}`,
+            getUpdatePayload(formData),
+          );
+        } else {
+          const res = await axios.post(
+            "http://localhost:5000/api/Coursetable",
+            getUpdatePayload(formData),
+          );
+
+          setCourses([...courses, res.data]);
+        }
+
+        await fetchCourses();
+      }
+
+      // ENQUIRY
+      if (page === "enquiry") {
+        const enquiryId =
+          currentEditId ??
+          formData.__rowId ??
+          formData._id ??
+          formData.Eid ??
+          null;
+        const payload = {
+          ...formData,
+          Eid: enquiryId,
+          CID:
+            typeof formData.CID === "object" ? formData.CID._id : formData.CID,
+        };
+
+        if (isEditing) {
+          if (enquiryId === null || enquiryId === undefined || enquiryId === "") {
+            throw new Error("Missing enquiry id for edit.");
+          }
+
+          await axios.put(
+            `http://localhost:5000/api/Enquirytable/${enquiryId}`,
+            sanitizeEnquiryPayload(payload),
+          );
+        } else {
+          const res = await axios.post(
+            "http://localhost:5000/api/Enquirytable",
+            sanitizeEnquiryPayload(payload),
+          );
+
+          setEnquiries([...enquiries, res.data]);
+        }
+
+        await fetchEnquiries();
+      }
+
+      // FOLLOWUP
+      if (page === "followup") {
+        const payload = getUpdatePayload({
+          ...formData,
+          FollowUpDate: formData.FollowupDate || formData.FollowUpDate || "",
+        });
+
+        delete payload.FollowupDate;
+
+        if (isEditing && currentEditId !== null) {
+          await axios.put(
+            `http://localhost:5000/api/Followuptable/${currentEditId}`,
+            payload,
+          );
+        } else {
+          const res = await axios.post(
+            "http://localhost:5000/api/Followuptable",
+            payload,
+          );
+
+          setFollowups([...followups, res.data]);
+        }
+
+        await fetchFollowups();
       }
 
       setFormData(null);
-      setEditIndex(null);
+      setEditId(null);
+      setEditingRecord(null);
+      setFormMode("add");
+      activeEditRef.current = null;
     } catch (err) {
       console.error("Save Error:", err);
-      alert("Error saving data. Check backend.");
+      const backendMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error saving data.";
+
+      alert(`Error saving data: ${backendMessage}`);
     }
   };
 
@@ -871,8 +1073,18 @@ export default function AdminPanel() {
               className="btn btn-success mb-3"
               onClick={() => {
                 const obj = {};
-                fields.forEach((f) => (obj[f] = ""));
+
+                fields.filter(isEditableField).forEach((f) => {
+                  const fieldName = typeof f === "object" ? f.key : f;
+                  obj[fieldName] = "";
+                });
+
                 setFormData(obj);
+                setEditId(null);
+                setEditingRecord(null);
+                setFormMode("add");
+                setFormPage(page);
+                activeEditRef.current = null;
               }}
             >
               + Add
@@ -880,18 +1092,52 @@ export default function AdminPanel() {
 
             {formData && (
               <div className="card p-3 mb-3">
-                {fields.map((f, i) => {
+                {fields.filter(isEditableField).map((f, i) => {
                   const fieldName = typeof f === "object" ? f.key : f;
+
+                  if (isCourseSelectField(fieldName)) {
+                    return (
+                      <select
+                        key={i}
+                        className="form-control mb-2"
+                        value={formData[fieldName] || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            [fieldName]: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">
+                          {fieldName === "WantToTakeAdmission"
+                            ? "Select Course"
+                            : "Select Suggested Course"}
+                        </option>
+                        {courses.map((course) => (
+                          <option key={`${fieldName}-${course._id}`} value={course.title}>
+                            {course.title}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  }
 
                   return (
                     <input
                       key={i}
-                      type={fieldName === "FollowupDate" ? "date" : "text"}
+                      type={
+                        fieldName === "FollowupDate" ||
+                        fieldName === "FollowUpDate"
+                          ? "date"
+                          : "text"
+                      }
                       className="form-control mb-2"
                       placeholder={typeof f === "object" ? f.label : f}
                       value={
-                        fieldName === "FollowupDate" && formData[fieldName]
-                          ? formData[fieldName].split("T")[0]
+                        (fieldName === "FollowupDate" ||
+                          fieldName === "FollowUpDate") &&
+                        formData[fieldName]
+                          ? String(formData[fieldName]).split("T")[0]
                           : formData[fieldName] || ""
                       }
                       onChange={(e) =>
@@ -905,12 +1151,19 @@ export default function AdminPanel() {
                 })}
 
                 <button className="btn btn-primary me-2" onClick={saveData}>
-                  Save
+                  {formMode === "edit" ? "Update" : "Save"}
                 </button>
 
                 <button
                   className="btn btn-secondary"
-                  onClick={() => setFormData(null)}
+                  onClick={() => {
+                    setFormData(null);
+                    setEditId(null);
+                    setEditingRecord(null);
+                    setFormMode("add");
+                    setFormPage(page);
+                    activeEditRef.current = null;
+                  }}
                 >
                   Cancel
                 </button>
@@ -927,7 +1180,9 @@ export default function AdminPanel() {
                     {fields.map((f, i) => (
                       <th key={i}>{typeof f === "object" ? f.label : f}</th>
                     ))}
-                    <th>Action</th>
+                    <th style={{ width: "170px", whiteSpace: "nowrap" }}>
+                      Action
+                    </th>
                   </tr>
                 </thead>
 
@@ -946,16 +1201,31 @@ export default function AdminPanel() {
                             return <td key={j}>{f.render(row)}</td>;
                           }
 
-                          return (
-                            <td key={j}>{f === "Eid" ? row._id : row[f]}</td>
-                          );
+                          return <td key={j}>{row[f]}</td>;
                         })}
-                        <td>
+                        <td style={{ whiteSpace: "nowrap" }}>
+                          <div className="d-flex gap-2 align-items-center flex-nowrap">
                           <button
-                            className="btn btn-warning btn-sm me-2"
+                            className="btn btn-warning btn-sm"
                             onClick={() => {
-                              setFormData(row);
-                              setEditIndex(i);
+                              const editableRow = {
+                                ...row,
+                                __rowId: row._id ?? row.Eid ?? null,
+                                CID: row.CID || "",
+                                FollowupDate:
+                                  row.FollowupDate || row.FollowUpDate || "",
+                              };
+
+                              activeEditRef.current = {
+                                id: row._id ?? row.Eid ?? null,
+                                page,
+                                row,
+                              };
+                              setFormData({ ...editableRow });
+                              setEditId(row._id ?? row.Eid ?? null);
+                              setEditingRecord(row);
+                              setFormMode("edit");
+                              setFormPage(page);
                             }}
                           >
                             Edit
@@ -967,6 +1237,7 @@ export default function AdminPanel() {
                           >
                             Delete
                           </button>
+                          </div>
                         </td>
                       </tr>
                     ))

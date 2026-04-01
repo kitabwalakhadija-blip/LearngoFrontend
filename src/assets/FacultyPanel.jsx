@@ -705,13 +705,29 @@
 //   );
 // }
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 export default function FacultyPanel() {
+  const formatDateTime = (value) => {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return date.toLocaleString("en-IN");
+  };
+
   const ENQUIRY_FIELDS = [
+    "Eid",
+    "EnquiryDate",
     "student_name",
     "phone",
     "CID",
@@ -755,7 +771,7 @@ export default function FacultyPanel() {
   ];
 
   const COURSE_FIELDS = [
-    "_id",
+    "Id",
     "title",
     "description",
      "link",
@@ -778,6 +794,10 @@ export default function FacultyPanel() {
   const [page, setPage] = useState("home");
   const [formData, setFormData] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [formMode, setFormMode] = useState("add");
+  const [formPage, setFormPage] = useState(null);
+  const activeEditRef = useRef(null);
   const [searchText, setSearchText] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -799,6 +819,21 @@ export default function FacultyPanel() {
       } catch (err) {}
     }
     return fallback;
+  };
+
+  const requestWithFallback = async (configs) => {
+    let lastError = null;
+
+    for (const config of configs) {
+      try {
+        const res = await axios(config);
+        return res.data;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    throw lastError || new Error("Request failed");
   };
   
 
@@ -868,6 +903,16 @@ export default function FacultyPanel() {
     }
   }, []);
 
+  useEffect(() => {
+    setFormData(null);
+    setEditId(null);
+    setEditingRecord(null);
+    setFormMode("add");
+    setFormPage(page);
+    setSearchText("");
+    activeEditRef.current = null;
+  }, [page]);
+
   const getTable = () => {
     if (page === "enquiry") return [ENQUIRY_FIELDS, enquiries];
     if (page === "followup") return [FOLLOWUP_FIELDS, followups];
@@ -894,46 +939,82 @@ export default function FacultyPanel() {
   const openAddForm = () => {
     const obj = {};
     fields.forEach((f) => {
-      if (f !== "_id") obj[f] = "";
+      if (f !== "_id" && f !== "Eid" && f !== "Id") obj[f] = "";
     });
     setFormData(obj);
     setEditId(null);
+    setEditingRecord(null);
+    setFormMode("add");
+    setFormPage(page);
+    activeEditRef.current = null;
   };
 
   const openEditForm = (row) => {
-    setFormData({ ...row });
-    setEditId(row._id || null);
+    const editableRow = {
+      ...row,
+      __rowId: row._id ?? row.Eid ?? null,
+      CID: row.CID || "",
+      FollowUpDate: row.FollowUpDate || row.FollowupDate || "",
+    };
+
+    activeEditRef.current = {
+      id: row._id ?? row.Eid ?? null,
+      page,
+      row,
+    };
+    setFormData(editableRow);
+    setEditId(row._id ?? row.Eid ?? null);
+    setEditingRecord(row);
+    setFormMode("edit");
+    setFormPage(page);
   };
 
   const saveData = async () => {
     try {
       if (!formData) return;
+      const isEditing = formMode === "edit" && formPage === page;
+      const currentEditId =
+        activeEditRef.current?.id ??
+        editId ??
+        editingRecord?._id ??
+        editingRecord?.Eid ??
+        formData?.__rowId ??
+        formData?._id ??
+        formData?.Eid ??
+        null;
+      const payload = { ...formData };
+
+      delete payload._id;
+      delete payload.__v;
+      delete payload.__rowId;
 
       if (page === "enquiry") {
-        if (editId) {
-          await getFirstSuccess([
+        payload.CID =
+          typeof payload.CID === "object" ? payload.CID._id : payload.CID;
+        payload.Eid = currentEditId;
+
+        if (!payload.CID) {
+          delete payload.CID;
+        }
+
+        if (isEditing) {
+          if (currentEditId === null || currentEditId === undefined || currentEditId === "") {
+            throw new Error("Missing enquiry id for edit.");
+          }
+
+          await requestWithFallback([
             {
               method: "put",
-              url: `http://localhost:5000/api/enquirytable/${editId}`,
-              data: formData,
-            },
-            {
-              method: "put",
-              url: `http://localhost:5000/api/Enquirytable/${editId}`,
-              data: formData,
+              url: `http://localhost:5000/api/Enquirytable/${currentEditId}`,
+              data: payload,
             },
           ]);
         } else {
-          await getFirstSuccess([
-            {
-              method: "post",
-              url: "http://localhost:5000/api/enquirytable",
-              data: formData,
-            },
+          await requestWithFallback([
             {
               method: "post",
               url: "http://localhost:5000/api/Enquirytable",
-              data: formData,
+              data: payload,
             },
           ]);
         }
@@ -941,30 +1022,28 @@ export default function FacultyPanel() {
       }
 
       if (page === "followup") {
-        if (editId) {
-          await getFirstSuccess([
+        payload.FollowUpDate =
+          payload.FollowUpDate || payload.FollowupDate || "";
+        delete payload.FollowupDate;
+
+        if (isEditing) {
+          if (currentEditId === null || currentEditId === undefined || currentEditId === "") {
+            throw new Error("Missing followup id for edit.");
+          }
+
+          await requestWithFallback([
             {
               method: "put",
-              url: `http://localhost:5000/api/Followuptable/${editId}`,
-              data: formData,
-            },
-            {
-              method: "put",
-              url: `http://localhost:5000/api/followup/${editId}`,
-              data: formData,
+              url: `http://localhost:5000/api/Followuptable/${currentEditId}`,
+              data: payload,
             },
           ]);
         } else {
-          await getFirstSuccess([
+          await requestWithFallback([
             {
               method: "post",
               url: "http://localhost:5000/api/Followuptable",
-              data: formData,
-            },
-            {
-              method: "post",
-              url: "http://localhost:5000/api/followup",
-              data: formData,
+              data: payload,
             },
           ]);
         }
@@ -973,20 +1052,21 @@ export default function FacultyPanel() {
 
       setFormData(null);
       setEditId(null);
+      setEditingRecord(null);
+      setFormMode("add");
+      activeEditRef.current = null;
     } catch (err) {
       console.error("Save error:", err);
-      alert("Error saving data");
+      const message =
+        err?.response?.data?.message || err?.message || "Error saving data";
+      alert(message);
     }
   };
 
   const deleteRow = async (row) => {
     try {
       if (page === "enquiry") {
-        await getFirstSuccess([
-          {
-            method: "delete",
-            url: `http://localhost:5000/api/enquirytable/${row._id}`,
-          },
+        await requestWithFallback([
           {
             method: "delete",
             url: `http://localhost:5000/api/Enquirytable/${row._id}`,
@@ -996,14 +1076,10 @@ export default function FacultyPanel() {
       }
 
       if (page === "followup") {
-        await getFirstSuccess([
+        await requestWithFallback([
           {
             method: "delete",
             url: `http://localhost:5000/api/Followuptable/${row._id}`,
-          },
-          {
-            method: "delete",
-            url: `http://localhost:5000/api/followup/${row._id}`,
           },
         ]);
         await fetchFollowups();
@@ -1021,17 +1097,7 @@ export default function FacultyPanel() {
         return;
       }
 
-      await getFirstSuccess([
-        {
-          method: "put",
-          url: `http://localhost:5000/api/faculty/${currentFaculty._id}`,
-          data: currentFaculty,
-        },
-        {
-          method: "put",
-          url: `http://localhost:5000/api/facultytable/${currentFaculty._id}`,
-          data: currentFaculty,
-        },
+      await requestWithFallback([
         {
           method: "put",
           url: `http://localhost:5000/api/Facultytable/${currentFaculty._id}`,
@@ -1054,17 +1120,7 @@ export default function FacultyPanel() {
         return;
       }
 
-      await getFirstSuccess([
-        {
-          method: "put",
-          url: `http://localhost:5000/api/faculty/${currentFaculty._id}`,
-          data: { Password: newPassword },
-        },
-        {
-          method: "put",
-          url: `http://localhost:5000/api/facultytable/${currentFaculty._id}`,
-          data: { Password: newPassword },
-        },
+      await requestWithFallback([
         {
           method: "put",
           url: `http://localhost:5000/api/Facultytable/${currentFaculty._id}`,
@@ -1113,7 +1169,11 @@ export default function FacultyPanel() {
                 setPage(p);
                 setFormData(null);
                 setEditId(null);
+                setEditingRecord(null);
+                setFormMode("add");
+                setFormPage(p);
                 setSearchText("");
+                activeEditRef.current = null;
               }}
             >
               {p}
@@ -1199,19 +1259,10 @@ export default function FacultyPanel() {
                     <input
                       className="form-control"
                       value={currentFaculty[f] || ""}
-                      onChange={(e) =>
-                        setCurrentFaculty({
-                          ...currentFaculty,
-                          [f]: e.target.value,
-                        })
-                      }
+                      readOnly
                     />
                   </div>
                 ))}
-
-                <button className="btn btn-success mt-2" onClick={saveProfile}>
-                  Save Profile
-                </button>
               </>
             )}
           </div>
@@ -1272,8 +1323,18 @@ export default function FacultyPanel() {
                   <div key={i} className="mb-2">
                     <label className="form-label">{f}</label>
                     <input
+                      type={
+                        f === "FollowUpDate" || f === "FollowupDate"
+                          ? "date"
+                          : "text"
+                      }
                       className="form-control"
-                      value={formData[f] || ""}
+                      value={
+                        (f === "FollowUpDate" || f === "FollowupDate") &&
+                        formData[f]
+                          ? String(formData[f]).split("T")[0]
+                          : formData[f] || ""
+                      }
                       onChange={(e) =>
                         setFormData({ ...formData, [f]: e.target.value })
                       }
@@ -1283,13 +1344,17 @@ export default function FacultyPanel() {
 
                 <div className="mt-2">
                   <button className="btn btn-primary me-2" onClick={saveData}>
-                    Save
+                    {formMode === "edit" ? "Update" : "Save"}
                   </button>
                   <button
                     className="btn btn-secondary"
                     onClick={() => {
                       setFormData(null);
                       setEditId(null);
+                      setEditingRecord(null);
+                      setFormMode("add");
+                      setFormPage(page);
+                      activeEditRef.current = null;
                     }}
                   >
                     Cancel
@@ -1309,7 +1374,9 @@ export default function FacultyPanel() {
                       <th key={i}>{f}</th>
                     ))}
                     {(page === "enquiry" || page === "followup") && (
-                      <th>Action</th>
+                      <th style={{ width: "170px", whiteSpace: "nowrap" }}>
+                        Action
+                      </th>
                     )}
                   </tr>
                 </thead>
@@ -1331,13 +1398,20 @@ export default function FacultyPanel() {
                     filteredData.map((row, i) => (
                       <tr key={i}>
                         {fields.map((f, j) => (
-                          <td key={j}>{row[f] ?? ""}</td>
+                          <td key={j}>
+                            {f === "EnquiryDate"
+                              ? formatDateTime(row[f])
+                              : f === "CID"
+                                ? row.CID || ""
+                                : row[f] ?? ""}
+                          </td>
                         ))}
 
                         {(page === "enquiry" || page === "followup") && (
-                          <td>
+                          <td style={{ whiteSpace: "nowrap" }}>
+                            <div className="d-flex gap-2 align-items-center flex-nowrap">
                             <button
-                              className="btn btn-warning btn-sm me-2"
+                              className="btn btn-warning btn-sm"
                               onClick={() => openEditForm(row)}
                             >
                               Edit
@@ -1349,6 +1423,7 @@ export default function FacultyPanel() {
                             >
                               Delete
                             </button>
+                            </div>
                           </td>
                         )}
                       </tr>

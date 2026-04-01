@@ -348,6 +348,7 @@ import axios from "axios";
 
 const Enquire = () => {
   const [formData, setFormData] = useState({
+    CID: "",
     Department: "",
     ConsellerName: "",
     WantToTakeAdmission: "",
@@ -417,10 +418,8 @@ const Enquire = () => {
     e.preventDefault();
 
     try {
-      const selectedCourse = courses.find((course) =>
-        course.title
-          ?.toLowerCase()
-          .includes(formData.WantToTakeAdmission.toLowerCase()),
+      const selectedCourse = courses.find(
+        (course) => String(course.Id) === String(formData.CID),
       );
 
       const payload = {
@@ -434,11 +433,13 @@ const Enquire = () => {
         HowDidYouComeToKnowAboutUs:
           formData.HowDidYouComeToKnowAboutUs.join(", "),
       };
+      payload.CID = Number(formData.CID) || Number(selectedCourse?.Id) || "";
       await axios.post("http://localhost:5000/api/enquirytable", payload);
 
       alert("Enquiry Submitted Successfully");
 
       setFormData({
+        CID: "",
         Department: "",
         ConsellerName: "",
         WantToTakeAdmission: "",
@@ -493,7 +494,7 @@ const Enquire = () => {
                 const selectedId = e.target.value;
 
                 const selectedCourse = courses.find(
-                  (c) => c._id === selectedId,
+                  (c) => String(c.Id) === selectedId,
                 );
 
                 setFormData((prev) => ({
@@ -506,7 +507,7 @@ const Enquire = () => {
               <option value="">Select Course</option>
 
               {courses.map((course) => (
-                <option key={course._id} value={course._id}>
+                <option key={course._id} value={course.Id}>
                   {course.title}
                 </option>
               ))}
@@ -533,11 +534,18 @@ const Enquire = () => {
         </div>
 
         <label>Suggested Course</label>
-        <input
+        <select
           name="SuggestedCourse"
           value={formData.SuggestedCourse}
           onChange={handleChange}
-        />
+        >
+          <option value="">Select Suggested Course</option>
+          {courses.map((course) => (
+            <option key={`suggested-${course._id}`} value={course.title}>
+              {course.title}
+            </option>
+          ))}
+        </select>
 
         <label>Purpose Of Course</label>
 
