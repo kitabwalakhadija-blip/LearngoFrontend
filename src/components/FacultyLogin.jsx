@@ -8,12 +8,22 @@ export default function FacultyLogin() {
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // ❗ prevent page reload
+    e.preventDefault();
+
+    const trimmedUserId = UserID.trim();
+    const trimmedPassword = Password.trim();
+
+    if (!trimmedUserId || !trimmedPassword) {
+      setError("UserID and Password are required");
+      return;
+    }
+
+    setError("");
 
     try {
       const res = await axios.post("http://localhost:5000/api/facultylogin", {
-        UserID,
-        Password,
+        UserID: trimmedUserId,
+        Password: trimmedPassword,
       });
 
       // ✅ store faculty data

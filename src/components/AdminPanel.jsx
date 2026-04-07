@@ -664,8 +664,107 @@ export default function AdminPanel() {
     page === "enquiry" &&
     (fieldName === "WantToTakeAdmission" || fieldName === "SuggestedCourse");
 
+  const getShortCellText = (value, maxLength = 18) => {
+    if (value === null || value === undefined) return "";
+
+    const text = String(value).trim();
+    if (text.length <= maxLength) return text;
+
+    return `${text.slice(0, maxLength)}...`;
+  };
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\d{10}$/;
+  const urlRegex = /^https?:\/\/.+/i;
+
+  const validateFormData = (currentPage, data, isEditing = false) => {
+    if (!data) {
+      return "Form data is missing.";
+    }
+
+    const read = (key) => String(data[key] ?? "").trim();
+
+    if (currentPage === "contact") {
+      if (!read("name")) return "Name is required.";
+      if (!emailRegex.test(read("email"))) return "Valid email is required.";
+      if (read("phoneNo") && !phoneRegex.test(read("phoneNo"))) {
+        return "Phone number must be exactly 10 digits.";
+      }
+      if (!read("message")) return "Message is required.";
+    }
+
+    if (currentPage === "faculty") {
+      if (!read("FacName")) return "Faculty name is required.";
+      if (!emailRegex.test(read("FacEmail"))) return "Valid faculty email is required.";
+      if (!phoneRegex.test(read("FacPhoneNo"))) {
+        return "Faculty phone number must be exactly 10 digits.";
+      }
+      if (!read("UserID")) return "UserID is required.";
+      if ((!isEditing || read("Password")) && read("Password").length < 6) {
+        return "Password must be at least 6 characters.";
+      }
+    }
+
+    if (currentPage === "courses") {
+      if (!read("title")) return "Course title is required.";
+      if (!read("description")) return "Course description is required.";
+      if (!read("duration")) return "Course duration is required.";
+      if (!read("link")) return "Course link is required.";
+      if (!urlRegex.test(read("link"))) {
+        return "Course link must start with http:// or https://";
+      }
+    }
+
+    if (currentPage === "enquiry") {
+      if (!read("student_name")) return "Student name is required.";
+      if (!phoneRegex.test(read("phone"))) return "Phone number must be exactly 10 digits.";
+      if (!emailRegex.test(read("email"))) return "Valid email is required.";
+      if (!read("Qualification")) return "Qualification is required.";
+      if (!read("WantToTakeAdmission")) return "Course selection is required.";
+
+      const percentage = Number(read("Percentage"));
+      if (read("Percentage") === "" || Number.isNaN(percentage) || percentage < 0 || percentage > 100) {
+        return "Percentage must be a number between 0 and 100.";
+      }
+    }
+
+    if (currentPage === "followup") {
+      if (!read("student_name")) return "Student name is required.";
+      if (!phoneRegex.test(read("phone"))) return "Phone number must be exactly 10 digits.";
+      if (!read("followup_detail")) return "Follow-up detail is required.";
+      if (!read("response")) return "Response is required.";
+      if (!read("FollowUpDate") && !read("FollowupDate")) {
+        return "Follow-up date is required.";
+      }
+    }
+
+    return null;
+  };
+
   const replaceRowById = (rows, rowId, nextRow) =>
     rows.map((row) => (String(row._id) === String(rowId) ? nextRow : row));
+
+  const getDeleteId = (row) => {
+    if (row?._id) {
+      return row._id;
+    }
+
+    const [, tableData] = getTable();
+
+    if (page === "enquiry" && row?.Eid !== undefined) {
+      return tableData.find((item) => item.Eid === row.Eid)?._id ?? row.Eid;
+    }
+
+    if (page === "followup" && row?.Eid !== undefined) {
+      return tableData.find((item) => item.Eid === row.Eid)?._id ?? row.Eid;
+    }
+
+    if (page === "courses" && row?.Id !== undefined) {
+      return tableData.find((item) => item.Id === row.Id)?._id ?? row.Id;
+    }
+
+    return row?.Id ?? row?.Eid ?? null;
+  };
 
   const getUpdatePayload = (data) => {
     if (!data) {
@@ -705,6 +804,11 @@ export default function AdminPanel() {
     try {
       if (!formData) return;
       const isEditing = formMode === "edit" && formPage === page;
+      const validationError = validateFormData(page, formData, isEditing);
+      if (validationError) {
+        alert(validationError);
+        return;
+      }
       const activeEdit = activeEditRef.current;
       const currentEditId =
         activeEdit?.id ??
@@ -854,37 +958,57 @@ export default function AdminPanel() {
 
   const deleteRow = async (i, row) => {
     try {
+      const deleteId = getDeleteId(row);
+      const deletePayload = {
+        _id: row?._id ?? null,
+        __rowId: row?._id ?? null,
+        Eid: row?.Eid ?? null,
+        Id: row?.Id ?? null,
+        sourceEnquiryId: row?.sourceEnquiryId ?? null,
+      };
+
+      if (!deleteId) {
+        alert("Unable to delete: missing record id.");
+        return;
+      }
+
       if (page === "contact") {
-        await axios.delete(
-          `http://localhost:5000/api/ContactUstable/${row._id}`,
-        );
-        fetchContacts();
+        await axios.delete(`http://localhost:5000/api/ContactUstable/${deleteId}`, {
+          data: deletePayload,
+        });
+        await fetchContacts();
         return;
       }
 
       if (page === "courses") {
-        await axios.delete(`http://localhost:5000/api/Coursetable/${row._id}`);
-        fetchCourses();
+        await axios.delete(`http://localhost:5000/api/Coursetable/${deleteId}`, {
+          data: deletePayload,
+        });
+        await fetchCourses();
         return;
       }
 
       if (page === "faculty") {
-        await axios.delete(`http://localhost:5000/api/Facultytable/${row._id}`);
-        fetchFaculty();
+        await axios.delete(`http://localhost:5000/api/Facultytable/${deleteId}`, {
+          data: deletePayload,
+        });
+        await fetchFaculty();
         return;
       }
 
       if (page === "enquiry") {
-        await axios.delete(`http://localhost:5000/api/Enquirytable/${row._id}`);
-        fetchEnquiries();
+        await axios.delete(`http://localhost:5000/api/Enquirytable/${deleteId}`, {
+          data: deletePayload,
+        });
+        await fetchEnquiries();
         return;
       }
 
       if (page === "followup") {
-        await axios.delete(
-          `http://localhost:5000/api/Followuptable/${row._id}`,
-        );
-        fetchFollowups();
+        await axios.delete(`http://localhost:5000/api/Followuptable/${deleteId}`, {
+          data: deletePayload,
+        });
+        await fetchFollowups();
         return;
       }
 
@@ -894,6 +1018,9 @@ export default function AdminPanel() {
       setData(updated);
     } catch (error) {
       console.log("Delete error:", error);
+      alert(
+        error?.response?.data?.message || "Error deleting data.",
+      );
     }
   };
 
@@ -1129,10 +1256,42 @@ export default function AdminPanel() {
                         fieldName === "FollowupDate" ||
                         fieldName === "FollowUpDate"
                           ? "date"
-                          : "text"
+                          : fieldName === "email" || fieldName === "FacEmail"
+                            ? "email"
+                            : fieldName === "phone" ||
+                                fieldName === "phoneNo" ||
+                                fieldName === "FacPhoneNo"
+                              ? "tel"
+                              : fieldName === "Percentage"
+                                ? "number"
+                                : fieldName === "link"
+                                  ? "url"
+                                  : "text"
                       }
                       className="form-control mb-2"
                       placeholder={typeof f === "object" ? f.label : f}
+                      required={[
+                        "name",
+                        "email",
+                        "message",
+                        "FacName",
+                        "FacEmail",
+                        "FacPhoneNo",
+                        "UserID",
+                        "title",
+                        "description",
+                        "duration",
+                        "link",
+                        "student_name",
+                        "phone",
+                        "Qualification",
+                        "WantToTakeAdmission",
+                        "Percentage",
+                        "followup_detail",
+                        "response",
+                        "FollowupDate",
+                        "FollowUpDate",
+                      ].includes(fieldName)}
                       value={
                         (fieldName === "FollowupDate" ||
                           fieldName === "FollowUpDate") &&
@@ -1140,6 +1299,8 @@ export default function AdminPanel() {
                           ? String(formData[fieldName]).split("T")[0]
                           : formData[fieldName] || ""
                       }
+                      min={fieldName === "Percentage" ? "0" : undefined}
+                      max={fieldName === "Percentage" ? "100" : undefined}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
@@ -1201,7 +1362,14 @@ export default function AdminPanel() {
                             return <td key={j}>{f.render(row)}</td>;
                           }
 
-                          return <td key={j}>{row[f]}</td>;
+                          const value = row[f];
+                          const shortValue = getShortCellText(value);
+
+                          return (
+                            <td key={j} title={value ? String(value) : ""}>
+                              {shortValue}
+                            </td>
+                          );
                         })}
                         <td style={{ whiteSpace: "nowrap" }}>
                           <div className="d-flex gap-2 align-items-center flex-nowrap">

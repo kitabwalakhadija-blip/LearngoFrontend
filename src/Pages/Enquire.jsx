@@ -347,6 +347,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 const Enquire = () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\d{10}$/;
   const [formData, setFormData] = useState({
     CID: "",
     Department: "",
@@ -416,6 +418,58 @@ const Enquire = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const percentageValue = Number(formData.Percentage);
+
+    if (!formData.CID) {
+      alert("Please select a course for admission.");
+      return;
+    }
+
+    if (!formData.Qualification.trim()) {
+      alert("Qualification is required.");
+      return;
+    }
+
+    if (
+      formData.Percentage === "" ||
+      Number.isNaN(percentageValue) ||
+      percentageValue < 0 ||
+      percentageValue > 100
+    ) {
+      alert("Percentage must be a number between 0 and 100.");
+      return;
+    }
+
+    if (!formData.PurposeOfCourse.length) {
+      alert("Please select at least one purpose of course.");
+      return;
+    }
+
+    if (!formData.student_name.trim()) {
+      alert("Student name is required.");
+      return;
+    }
+
+    if (!phoneRegex.test(formData.phone.trim())) {
+      alert("Phone number must be exactly 10 digits.");
+      return;
+    }
+
+    if (formData.mobile.trim() && !phoneRegex.test(formData.mobile.trim())) {
+      alert("Mobile number must be exactly 10 digits.");
+      return;
+    }
+
+    if (!emailRegex.test(formData.email.trim())) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    if (!formData.permanent_address.trim()) {
+      alert("Permanent address is required.");
+      return;
+    }
 
     try {
       const selectedCourse = courses.find(
@@ -490,6 +544,7 @@ const Enquire = () => {
             <label>Want To Take Admission</label>
             <select
               value={formData.CID}
+              required
               onChange={(e) => {
                 const selectedId = e.target.value;
 
@@ -520,15 +575,20 @@ const Enquire = () => {
               name="Qualification"
               value={formData.Qualification}
               onChange={handleChange}
+              required
             />
           </div>
 
           <div>
             <label>Percentage</label>
             <input
+              type="number"
               name="Percentage"
               value={formData.Percentage}
               onChange={handleChange}
+              min="0"
+              max="100"
+              required
             />
           </div>
         </div>
@@ -613,33 +673,43 @@ const Enquire = () => {
           name="student_name"
           value={formData.student_name}
           onChange={handleChange}
+          required
         />
 
         <div className="row">
           <div>
             <label>Phone</label>
             <input
+              type="tel"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              pattern="\d{10}"
+              maxLength="10"
+              required
             />
           </div>
 
           <div>
             <label>Mobile</label>
             <input
+              type="tel"
               name="mobile"
               value={formData.mobile}
               onChange={handleChange}
+              pattern="\d{10}"
+              maxLength="10"
             />
           </div>
 
           <div>
             <label>Email</label>
             <input
+              type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
+              required
             />
           </div>
         </div>
@@ -649,6 +719,7 @@ const Enquire = () => {
           name="permanent_address"
           value={formData.permanent_address}
           onChange={handleChange}
+          required
         />
 
         <label>Temporary Address</label>

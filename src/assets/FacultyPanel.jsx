@@ -922,6 +922,51 @@ export default function FacultyPanel() {
 
   const [fields, data] = getTable();
 
+  const getShortCellText = (value, maxLength = 18) => {
+    if (value === null || value === undefined) return "";
+
+    const text = String(value).trim();
+    if (text.length <= maxLength) return text;
+
+    return `${text.slice(0, maxLength)}...`;
+  };
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\d{10}$/;
+
+  const validateFormData = (currentPage, data) => {
+    if (!data) {
+      return "Form data is missing.";
+    }
+
+    const read = (key) => String(data[key] ?? "").trim();
+
+    if (currentPage === "enquiry") {
+      if (!read("student_name")) return "Student name is required.";
+      if (!phoneRegex.test(read("phone"))) return "Phone number must be exactly 10 digits.";
+      if (!emailRegex.test(read("email"))) return "Valid email is required.";
+      if (!read("Qualification")) return "Qualification is required.";
+      if (!read("WantToTakeAdmission")) return "Course selection is required.";
+
+      const percentage = Number(read("Percentage"));
+      if (read("Percentage") === "" || Number.isNaN(percentage) || percentage < 0 || percentage > 100) {
+        return "Percentage must be a number between 0 and 100.";
+      }
+    }
+
+    if (currentPage === "followup") {
+      if (!read("student_name")) return "Student name is required.";
+      if (!phoneRegex.test(read("phone"))) return "Phone number must be exactly 10 digits.";
+      if (!read("followup_detail")) return "Follow-up detail is required.";
+      if (!read("response")) return "Response is required.";
+      if (!read("FollowUpDate") && !read("FollowupDate")) {
+        return "Follow-up date is required.";
+      }
+    }
+
+    return null;
+  };
+
   const filteredData = useMemo(() => {
     if (page !== "enquiry" && page !== "followup") return data;
 
@@ -935,6 +980,26 @@ export default function FacultyPanel() {
         .includes(q),
     );
   }, [page, data, searchText]);
+
+  const getDeleteId = (row) => {
+    if (row?._id) {
+      return row._id;
+    }
+
+    if (page === "enquiry" && row?.Eid !== undefined) {
+      return enquiries.find((item) => item.Eid === row.Eid)?._id ?? row.Eid;
+    }
+
+    if (page === "followup" && row?.Eid !== undefined) {
+      return followups.find((item) => item.Eid === row.Eid)?._id ?? row.Eid;
+    }
+
+    if (page === "courses" && row?.Id !== undefined) {
+      return courses.find((item) => item.Id === row.Id)?._id ?? row.Id;
+    }
+
+    return row?.Eid ?? row?.Id ?? null;
+  };
 
   const openAddForm = () => {
     const obj = {};
@@ -972,6 +1037,11 @@ export default function FacultyPanel() {
   const saveData = async () => {
     try {
       if (!formData) return;
+      const validationError = validateFormData(page, formData);
+      if (validationError) {
+        alert(validationError);
+        return;
+      }
       const isEditing = formMode === "edit" && formPage === page;
       const currentEditId =
         activeEditRef.current?.id ??
@@ -1065,11 +1135,26 @@ export default function FacultyPanel() {
 
   const deleteRow = async (row) => {
     try {
+      const deleteId = getDeleteId(row);
+      const deletePayload = {
+        _id: row?._id ?? null,
+        __rowId: row?._id ?? null,
+        Eid: row?.Eid ?? null,
+        Id: row?.Id ?? null,
+        sourceEnquiryId: row?.sourceEnquiryId ?? null,
+      };
+
+      if (!deleteId) {
+        alert("Unable to delete: missing record id.");
+        return;
+      }
+
       if (page === "enquiry") {
         await requestWithFallback([
           {
             method: "delete",
-            url: `http://localhost:5000/api/Enquirytable/${row._id}`,
+            url: `http://localhost:5000/api/Enquirytable/${deleteId}`,
+            data: deletePayload,
           },
         ]);
         await fetchEnquiries();
@@ -1079,14 +1164,15 @@ export default function FacultyPanel() {
         await requestWithFallback([
           {
             method: "delete",
-            url: `http://localhost:5000/api/Followuptable/${row._id}`,
+            url: `http://localhost:5000/api/Followuptable/${deleteId}`,
+            data: deletePayload,
           },
         ]);
         await fetchFollowups();
       }
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Error deleting data");
+      alert(err?.response?.data?.message || "Error deleting data");
     }
   };
 
@@ -1094,6 +1180,21 @@ export default function FacultyPanel() {
     try {
       if (!currentFaculty?._id) {
         alert("No faculty profile found");
+        return;
+      }
+
+      if (!String(currentFaculty.FacName ?? "").trim()) {
+        alert("Faculty name is required");
+        return;
+      }
+
+      if (!emailRegex.test(String(currentFaculty.FacEmail ?? "").trim())) {
+        alert("Please enter a valid faculty email address");
+        return;
+      }
+
+      if (!phoneRegex.test(String(currentFaculty.FacPhoneNo ?? "").trim())) {
+        alert("Faculty phone number must be exactly 10 digits");
         return;
       }
 
@@ -1120,16 +1221,21 @@ export default function FacultyPanel() {
         return;
       }
 
+      if (newPassword.trim().length < 6) {
+        alert("Password must be at least 6 characters.");
+        return;
+      }
+
       await requestWithFallback([
         {
           method: "put",
           url: `http://localhost:5000/api/Facultytable/${currentFaculty._id}`,
-          data: { Password: newPassword },
+          data: { Password: newPassword.trim() },
         },
       ]);
 
       // ✅ IMPORTANT FIX
-      const updated = { ...currentFaculty, Password: newPassword };
+      const updated = { ...currentFaculty, Password: newPassword.trim() };
       setCurrentFaculty(updated);
       localStorage.setItem("faculty", JSON.stringify(updated));
 
@@ -1326,15 +1432,35 @@ export default function FacultyPanel() {
                       type={
                         f === "FollowUpDate" || f === "FollowupDate"
                           ? "date"
-                          : "text"
+                          : f === "email"
+                            ? "email"
+                            : f === "phone" || f === "ContactNo" || f === "FacPhoneNo"
+                              ? "tel"
+                              : f === "Percentage"
+                                ? "number"
+                                : "text"
                       }
                       className="form-control"
+                      required={[
+                        "student_name",
+                        "phone",
+                        "Qualification",
+                        "WantToTakeAdmission",
+                        "Percentage",
+                        "email",
+                        "followup_detail",
+                        "response",
+                        "FollowUpDate",
+                        "FollowupDate",
+                      ].includes(f)}
                       value={
                         (f === "FollowUpDate" || f === "FollowupDate") &&
                         formData[f]
                           ? String(formData[f]).split("T")[0]
                           : formData[f] || ""
                       }
+                      min={f === "Percentage" ? "0" : undefined}
+                      max={f === "Percentage" ? "100" : undefined}
                       onChange={(e) =>
                         setFormData({ ...formData, [f]: e.target.value })
                       }
@@ -1398,12 +1524,23 @@ export default function FacultyPanel() {
                     filteredData.map((row, i) => (
                       <tr key={i}>
                         {fields.map((f, j) => (
-                          <td key={j}>
-                            {f === "EnquiryDate"
-                              ? formatDateTime(row[f])
-                              : f === "CID"
-                                ? row.CID || ""
-                                : row[f] ?? ""}
+                          <td
+                            key={j}
+                            title={
+                              f === "EnquiryDate"
+                                ? formatDateTime(row[f])
+                                : f === "CID"
+                                  ? row.CID || ""
+                                  : row[f] ?? ""
+                            }
+                          >
+                            {getShortCellText(
+                              f === "EnquiryDate"
+                                ? formatDateTime(row[f])
+                                : f === "CID"
+                                  ? row.CID || ""
+                                  : row[f] ?? "",
+                            )}
                           </td>
                         ))}
 

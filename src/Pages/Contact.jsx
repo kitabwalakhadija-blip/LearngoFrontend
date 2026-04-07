@@ -86,6 +86,8 @@ import { useState } from "react";
 import axios from "axios";
 
 const Contact = () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\d{10}$/;
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -103,8 +105,35 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const trimmedData = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phoneNo: formData.phoneNo.trim(),
+      message: formData.message.trim(),
+    };
+
+    if (!trimmedData.name) {
+      alert("Name is required.");
+      return;
+    }
+
+    if (!emailRegex.test(trimmedData.email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    if (trimmedData.phoneNo && !phoneRegex.test(trimmedData.phoneNo)) {
+      alert("Phone number must be exactly 10 digits.");
+      return;
+    }
+
+    if (!trimmedData.message) {
+      alert("Message is required.");
+      return;
+    }
+
     try {
-      await axios.post("http://localhost:5000/api/ContactUstable", formData);
+      await axios.post("http://localhost:5000/api/ContactUstable", trimmedData);
 
       alert("Message sent successfully");
 
@@ -213,11 +242,13 @@ const Contact = () => {
             />
 
             <input
-              type="text"
+              type="tel"
               name="phoneNo"
               placeholder="Phone Number"
               value={formData.phoneNo}
               onChange={handleChange}
+              pattern="\d{10}"
+              maxLength="10"
             />
 
             <textarea
@@ -226,6 +257,7 @@ const Contact = () => {
               rows="5"
               value={formData.message}
               onChange={handleChange}
+              required
             ></textarea>
 
             <button type="submit">Send Message</button>
